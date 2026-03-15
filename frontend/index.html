@@ -1,0 +1,640 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Motor Vehicle Squadron Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="authView" class="auth-wrapper">
+      <div class="card shadow-lg auth-card">
+        <div class="card-body p-4 p-md-5">
+          <div class="auth-brand mb-4">
+            <div class="auth-icon"><i class="bi bi-truck-front-fill"></i></div>
+            <div>
+              <h3 class="fw-bold mb-1">MV Squadron</h3>
+              <p class="text-muted mb-0">Transport unit monitoring system</p>
+            </div>
+          </div>
+
+          <ul class="nav nav-pills mb-3" id="authTab" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="login-tab" data-bs-toggle="pill" data-bs-target="#login-pane" type="button" role="tab">
+                Login
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="signup-tab" data-bs-toggle="pill" data-bs-target="#signup-pane" type="button" role="tab">
+                Sign Up
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="authTabContent">
+            <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
+              <form id="loginForm">
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" name="email" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password</label>
+                  <div class="input-group password-wrap">
+                    <input id="loginPassword" type="password" name="password" class="form-control" required />
+                    <button
+                      class="btn btn-outline-secondary password-toggle"
+                      type="button"
+                      data-password-toggle
+                      data-target="loginPassword"
+                      aria-label="Show password"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 auth-btn">Sign In</button>
+              </form>
+              <div class="demo-account-box mt-3">
+                <small class="demo-account-label">Demo Accounts</small>
+                <div><strong>Admin:</strong> admin@mvsm.com / admin123</div>
+                <div><strong>Staff:</strong> staff@mvsm.com / staff123</div>
+              </div>
+            </div>
+
+            <div class="tab-pane fade" id="signup-pane" role="tabpanel">
+              <form id="signupForm">
+                <div class="mb-2">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" name="fullName" class="form-control" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Email</label>
+                  <input type="email" name="email" class="form-control" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Password</label>
+                  <div class="input-group password-wrap">
+                    <input id="signupPassword" type="password" name="password" class="form-control" required />
+                    <button
+                      class="btn btn-outline-secondary password-toggle"
+                      type="button"
+                      data-password-toggle
+                      data-target="signupPassword"
+                      aria-label="Show password"
+                    >
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Role</label>
+                  <select name="role" class="form-select">
+                    <option value="Staff">Staff</option>
+                    <option value="Admin">Admin</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 auth-btn">Create Account</button>
+              </form>
+            </div>
+          </div>
+          <div id="authMessage" class="small mt-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="appView" class="d-none">
+      <div class="app-shell">
+        <header class="app-topbar">
+          <div class="topbar-left"><i class="bi bi-command"></i></div>
+          <div class="topbar-center">Motor Vehicle Squadron</div>
+          <div class="topbar-right">
+            <span class="status-chip"><span class="status-dot"></span>System Online</span>
+            <button class="icon-btn" type="button" id="notificationBtn" aria-label="Open notifications"><i class="bi bi-bell"></i></button>
+            <div class="dropdown">
+              <button class="profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="profile-avatar"><i class="bi bi-person"></i></span>
+                <span class="profile-meta">
+                  <strong id="userName">User</strong>
+                  <small id="userRole">Staff</small>
+                </span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end profile-menu">
+                <li><button class="dropdown-item" type="button" id="profileBtn">Profile</button></li>
+                <li><button class="dropdown-item" type="button" id="settingsBtn">Settings</button></li>
+                <li><hr class="dropdown-divider" /></li>
+                <li><button class="dropdown-item text-danger" type="button" data-logout>Sign Out</button></li>
+              </ul>
+            </div>
+          </div>
+        </header>
+
+        <div class="app-body">
+          <aside class="sidebar">
+            <div class="sidebar-brand">
+              <div class="shield-icon"><i class="bi bi-shield-check"></i></div>
+              <div>
+                <small>MVS COMMAND</small>
+                <h5>Motor Vehicle Squadron</h5>
+              </div>
+            </div>
+
+            <p class="sidebar-label">Main Navigation</p>
+            <nav class="sidebar-nav" id="sidebarNav">
+              <button class="section-link active" data-section="dashboard"><i class="bi bi-grid"></i> Dashboard Overview</button>
+              <button class="section-link" data-section="movements"><i class="bi bi-sign-turn-right"></i> Vehicle Movement Monitoring</button>
+              <button class="section-link" data-section="maintenance"><i class="bi bi-tools"></i> Vehicle Maintenance Monitoring</button>
+              <button class="section-link" data-section="vehicles"><i class="bi bi-truck"></i> Fleet Registry</button>
+              <button class="section-link" data-section="reports"><i class="bi bi-bar-chart"></i> Reports & Analytics</button>
+              <button class="section-link" data-section="drivers"><i class="bi bi-person-vcard"></i> Driver Management</button>
+            </nav>
+
+            <div class="sidebar-footer">
+              <button class="sidebar-action" type="button" id="sidebarSettingsBtn"><i class="bi bi-gear"></i> Settings</button>
+              <button class="sidebar-action text-danger" type="button" data-logout><i class="bi bi-box-arrow-right"></i> Sign Out</button>
+            </div>
+          </aside>
+
+          <main class="workspace">
+            <div class="workspace-head">
+              <div>
+                <h4 class="mb-1" id="sectionTitle">Dashboard Overview</h4>
+                <p id="dashboardDate" class="mb-0 text-muted"></p>
+              </div>
+            </div>
+
+            <section class="content p-3">
+              <div id="alertBox"></div>
+
+              <div id="dashboard" class="section-pane">
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-3 col-md-6">
+                    <article class="metric-card tone-slate">
+                      <div class="metric-head"><span>Fleet Total</span><i class="bi bi-truck"></i></div>
+                      <h2 id="kpiFleetTotal">0</h2>
+                      <p>Total registered vehicles</p>
+                      <div class="line-progress"><span id="kpiFleetTotalBar"></span></div>
+                    </article>
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <article class="metric-card tone-blue">
+                      <div class="metric-head"><span>On Mission</span><i class="bi bi-send"></i></div>
+                      <h2 id="kpiOnMission">0</h2>
+                      <p>Currently deployed units</p>
+                      <div class="line-progress"><span id="kpiOnMissionBar"></span></div>
+                    </article>
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <article class="metric-card tone-amber">
+                      <div class="metric-head"><span>Maintenance Queue</span><i class="bi bi-wrench-adjustable-circle"></i></div>
+                      <h2 id="kpiMaintenanceQueue">0</h2>
+                      <p>Pending and ongoing work orders</p>
+                      <div class="line-progress"><span id="kpiMaintenanceQueueBar"></span></div>
+                    </article>
+                  </div>
+                  <div class="col-xl-3 col-md-6">
+                    <article class="metric-card tone-green">
+                      <div class="metric-head"><span>Readiness Rate</span><i class="bi bi-shield-check"></i></div>
+                      <h2><span id="kpiReadinessRate">0</span>%</h2>
+                      <p>Mission-ready fleet percentage</p>
+                      <div class="line-progress"><span id="kpiReadinessBar"></span></div>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-8">
+                    <div class="panel-card h-100">
+                      <div class="panel-head">
+                        <div>
+                          <h5 class="mb-0">Monthly Mission Activity</h5>
+                          <small>Mission orders dispatched per month</small>
+                        </div>
+                      </div>
+                      <div class="chart-wrap chart-medium">
+                        <canvas id="dashboardMissionMonthlyChart"></canvas>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-xl-4">
+                    <div class="panel-card h-100">
+                      <div class="panel-head">
+                        <div>
+                          <h5 class="mb-0">Fleet Status</h5>
+                          <small>Current deployment posture</small>
+                        </div>
+                      </div>
+                      <div class="chart-wrap chart-small">
+                        <canvas id="dashboardFleetStatusChart"></canvas>
+                      </div>
+                      <ul class="legend-list" id="dashboardFleetStatusLegend"></ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Recent Missions Feed</h5></div>
+                      <div class="feed-list" id="recentMissionFeed"></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Maintenance Queue</h5></div>
+                      <div class="queue-list" id="dashboardMaintenanceQueue"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-card">
+                  <div class="panel-head"><h5 class="mb-0">Fleet Quick-Status</h5></div>
+                  <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Vehicle</th>
+                          <th>Status</th>
+                          <th>Location</th>
+                          <th>Fuel Level</th>
+                          <th>Readiness</th>
+                          <th>Next Maintenance</th>
+                        </tr>
+                      </thead>
+                      <tbody id="fleetQuickStatusBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div id="movements" class="section-pane d-none">
+                <div class="card mb-3">
+                  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Mission Order Entry</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="movementNewBtn">New Mission Order</button>
+                  </div>
+                  <div class="card-body">
+                    <form id="movementForm" class="row g-2">
+                      <input type="hidden" name="id" />
+                      <div class="col-md-2"><select name="vehicleId" class="form-select" id="movementVehicle" required></select></div>
+                      <div class="col-md-2"><select name="driverId" class="form-select" id="movementDriver" required></select></div>
+                      <div class="col-md-2"><input name="destination" class="form-control" placeholder="Destination" required /></div>
+                      <div class="col-md-2"><input type="datetime-local" name="timeOut" class="form-control" required /></div>
+                      <div class="col-md-2"><input type="datetime-local" name="timeIn" class="form-control" /></div>
+                      <div class="col-md-2">
+                        <select name="status" class="form-select" required>
+                          <option>Dispatched</option><option>En Route</option><option>Returned</option><option>Delayed</option>
+                        </select>
+                      </div>
+                      <div class="col-md-10"><input name="notes" class="form-control" placeholder="Mission notes" /></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Save Mission</button></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-outline-secondary" type="button" id="movementClearBtn">Clear</button></div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="card mb-3">
+                  <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+                    <input id="movementSearchInput" class="form-control form-control-sm" placeholder="Search mission orders" style="max-width: 240px" />
+                    <select id="movementStatusFilter" class="form-select form-select-sm" style="max-width: 190px">
+                      <option value="">All Status</option>
+                      <option>Dispatched</option>
+                      <option>En Route</option>
+                      <option>Returned</option>
+                      <option>Delayed</option>
+                    </select>
+                    <select id="movementVehicleFilter" class="form-select form-select-sm" style="max-width: 220px"></select>
+                    <button class="btn btn-sm btn-outline-primary" id="movementRefreshBtn" type="button">Refresh View</button>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-8">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Mission Orders</h5></div>
+                      <div class="mission-card-grid" id="missionOrderCards"></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-4">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Deployed Vehicles</h5></div>
+                      <div class="deployed-panel" id="deployedVehiclesPanel"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Weekly Activity</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="movementWeeklyChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">6-Month Mission Trend</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="movementTrendChart"></canvas></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-card">
+                  <div class="panel-head"><h5 class="mb-0">Mission Movement Log</h5></div>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-striped mb-0">
+                      <thead>
+                        <tr>
+                          <th>Mission ID</th>
+                          <th>Vehicle</th>
+                          <th>Route</th>
+                          <th>Cargo</th>
+                          <th>PAX</th>
+                          <th>Driver</th>
+                          <th>Time Out</th>
+                          <th>Time In</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="movementsTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div id="maintenance" class="section-pane d-none">
+                <div class="card mb-3">
+                  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Create Maintenance Work Order</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="maintenanceNewBtn">New Work Order</button>
+                  </div>
+                  <div class="card-body">
+                    <form id="maintenanceForm" class="row g-2">
+                      <input type="hidden" name="id" />
+                      <div class="col-md-2"><select name="vehicleId" class="form-select" id="maintenanceVehicle" required></select></div>
+                      <div class="col-md-2"><input type="date" name="scheduledDate" class="form-control" required /></div>
+                      <div class="col-md-2"><input name="serviceType" class="form-control" placeholder="Service Type" required /></div>
+                      <div class="col-md-2">
+                        <select name="status" class="form-select" required><option>Pending</option><option>Ongoing</option><option>Completed</option></select>
+                      </div>
+                      <div class="col-md-2"><input type="number" step="0.01" name="cost" class="form-control" placeholder="Cost" /></div>
+                      <div class="col-md-2"><input type="date" name="nextDueDate" class="form-control" /></div>
+                      <div class="col-md-10"><input name="details" class="form-control" placeholder="Maintenance details" /></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Save Work Order</button></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-outline-secondary" type="button" id="maintenanceClearBtn">Clear</button></div>
+                    </form>
+                  </div>
+                </div>
+
+                <div id="overdueBanner" class="warning-strip d-none mb-3"></div>
+
+                <div class="panel-card mb-3">
+                  <div class="panel-head"><h5 class="mb-0">Work Order Cards</h5></div>
+                  <div class="workorder-grid" id="workOrderCards"></div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-5">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Cost by Category</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="maintenanceCostChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-3">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Maintenance Type Breakdown</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="maintenanceTypeChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-4">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Vehicles Under Maintenance</h5></div>
+                      <div class="progress-panel" id="vehiclesUnderMaintenancePanel"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-card">
+                  <div class="panel-head"><h5 class="mb-0">Maintenance Control Record</h5></div>
+                  <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>WO ID</th>
+                          <th>Vehicle</th>
+                          <th>Type</th>
+                          <th>Priority</th>
+                          <th>Status</th>
+                          <th>Schedule</th>
+                          <th>Next Due</th>
+                          <th>Cost</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="maintenanceTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div id="vehicles" class="section-pane d-none">
+                <div class="card mb-3">
+                  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Add / Update Vehicle</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="vehicleNewBtn">Add Vehicle</button>
+                  </div>
+                  <div class="card-body">
+                    <form id="vehicleForm" class="row g-2">
+                      <input type="hidden" name="id" />
+                      <div class="col-md-2"><input name="vehicleCode" class="form-control" placeholder="Vehicle ID" required /></div>
+                      <div class="col-md-2"><input name="plateNumber" class="form-control" placeholder="Plate Number" required /></div>
+                      <div class="col-md-2">
+                        <select name="vehicleType" class="form-select" required>
+                          <option value="">Type</option>
+                          <option>Bus</option>
+                          <option>Truck</option>
+                          <option>Van</option>
+                          <option>Multipurpose Vehicle</option>
+                        </select>
+                      </div>
+                      <div class="col-md-2"><input name="model" class="form-control" placeholder="Model" required /></div>
+                      <div class="col-md-2">
+                        <select name="status" class="form-select" required>
+                          <option>Available</option>
+                          <option>In Use</option>
+                          <option>Maintenance</option>
+                        </select>
+                      </div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Save Vehicle</button></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-outline-secondary" type="button" id="vehicleClearBtn">Clear</button></div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="card mb-3">
+                  <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+                    <input id="fleetSearchInput" class="form-control form-control-sm" placeholder="Search fleet registry" style="max-width: 260px" />
+                    <select id="fleetTypeFilter" class="form-select form-select-sm" style="max-width: 200px"></select>
+                    <select id="fleetStatusFilter" class="form-select form-select-sm" style="max-width: 200px">
+                      <option value="all">All Status</option>
+                      <option value="Available">Available</option>
+                      <option value="In Use">In Use</option>
+                      <option value="Maintenance">Maintenance</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3" id="fleetStatusSummary"></div>
+
+                <div class="panel-card">
+                  <div class="panel-head"><h5 class="mb-0">Vehicle Roster</h5></div>
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th></th>
+                          <th>Vehicle ID</th>
+                          <th>Plate</th>
+                          <th>Type</th>
+                          <th>Status</th>
+                          <th>Location</th>
+                          <th>Fuel</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="vehiclesTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div id="reports" class="section-pane d-none">
+                <div class="row g-3 mb-3">
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Readiness Trend (Area)</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="reportReadinessChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Maintenance Costs (Bar)</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="reportMaintenanceCostChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Fleet Composition</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="reportFleetCompositionChart"></canvas></div>
+                    </div>
+                  </div>
+                  <div class="col-xl-6">
+                    <div class="panel-card h-100">
+                      <div class="panel-head"><h5 class="mb-0">Mission Volume (Line)</h5></div>
+                      <div class="chart-wrap chart-small"><canvas id="reportMissionVolumeChart"></canvas></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="panel-card mb-3">
+                  <div class="panel-head d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Document Library</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                      <a class="btn btn-sm btn-outline-primary" data-export-link href="/api/reports/analytics-pack/json" target="_blank">Analytics Pack JSON</a>
+                      <a class="btn btn-sm btn-outline-success" data-export-link href="/api/reports/vehicle-usage/csv" target="_blank">Vehicle Usage CSV</a>
+                      <a class="btn btn-sm btn-outline-danger" data-export-link href="/api/reports/vehicle-usage/pdf" target="_blank">Vehicle Usage PDF</a>
+                      <a class="btn btn-sm btn-outline-success" data-export-link href="/api/reports/maintenance/csv" target="_blank">Maintenance CSV</a>
+                      <a class="btn btn-sm btn-outline-danger" data-export-link href="/api/reports/maintenance/pdf" target="_blank">Maintenance PDF</a>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Document</th>
+                          <th>Category</th>
+                          <th>Updated</th>
+                          <th>Format</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="documentLibraryTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-lg-6">
+                    <div class="card h-100">
+                      <div class="card-header fw-semibold">Vehicle Usage Table Snapshot</div>
+                      <div class="card-body">
+                        <div class="table-responsive">
+                          <table class="table table-sm">
+                            <thead><tr><th>Vehicle</th><th>Plate</th><th>Trips</th><th>Hours</th></tr></thead>
+                            <tbody id="vehicleUsageTable"></tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-lg-6">
+                    <div class="card h-100">
+                      <div class="card-header fw-semibold">Maintenance Table Snapshot</div>
+                      <div class="card-body">
+                        <div class="table-responsive">
+                          <table class="table table-sm">
+                            <thead><tr><th>ID</th><th>Vehicle</th><th>Date</th><th>Status</th><th>Cost</th></tr></thead>
+                            <tbody id="maintenanceReportTable"></tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="drivers" class="section-pane d-none">
+                <div class="card mb-3">
+                  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Add / Update Driver</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" id="driverNewBtn">Register Driver</button>
+                  </div>
+                  <div class="card-body">
+                    <form id="driverForm" class="row g-2">
+                      <input type="hidden" name="id" />
+                      <div class="col-md-2"><input name="name" class="form-control" placeholder="Driver Name" required /></div>
+                      <div class="col-md-2"><input name="licenseNumber" class="form-control" placeholder="License Number" required /></div>
+                      <div class="col-md-2"><input name="phone" class="form-control" placeholder="Phone" /></div>
+                      <div class="col-md-2"><input name="address" class="form-control" placeholder="Address" /></div>
+                      <div class="col-md-2"><select name="assignedVehicleId" id="driverVehicle" class="form-select"></select></div>
+                      <div class="col-md-1"><select name="status" class="form-select"><option>Active</option><option>Inactive</option></select></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Save</button></div>
+                      <div class="col-md-1 d-grid"><button class="btn btn-outline-secondary" type="button" id="driverClearBtn">Clear</button></div>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                      <thead><tr><th>Name</th><th>License</th><th>Phone</th><th>Assigned Vehicle</th><th>Status</th><th>Actions</th></tr></thead>
+                      <tbody id="driversTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/signup",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/movement",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/maintenance",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/fleet",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/drivers",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reports",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/users",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/activity-logs",
+      "destination": "/index.html"
+    }
+  ]
+}
