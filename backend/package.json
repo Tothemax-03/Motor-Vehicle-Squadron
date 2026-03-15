@@ -4,6 +4,7 @@
   "description": "Backend API for Motor Vehicle Squadron Management System",
   "main": "server.js",
   "scripts": {
+    "build": "node --check server.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
     "demo:reset": "node database/resetDemoData.js",
