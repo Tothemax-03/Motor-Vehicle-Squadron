@@ -1,20 +1,21 @@
 const fs = require('fs');
 const path = require('path');
-const mysql = require('mysql2/promise');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+const { createDatabaseConnection, getDatabaseName } = require('../config/databaseConfig');
 
 async function resetDemoData() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: Number(process.env.DB_PORT || 3306),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    multipleStatements: true
+  const connection = await createDatabaseConnection({
+    includeDatabase: true,
+    multipleStatements: true,
+    allowCreateDatabase: true,
   });
 
   try {
     const schemaPath = path.join(__dirname, 'schema.sql');
-    const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+    const schemaSql = fs
+      .readFileSync(schemaPath, 'utf8')
+      .replace(/CREATE DATABASE IF NOT EXISTS\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `CREATE DATABASE IF NOT EXISTS \`${getDatabaseName()}\`;`)
+      .replace(/USE\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `USE \`${getDatabaseName()}\`;`);
     await connection.query(schemaSql);
     process.stdout.write('Demo database reset completed.\n');
   } finally {

@@ -1,14 +1,6 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+const { createDatabaseConnection, getDatabaseName } = require('../config/databaseConfig');
 
-const databaseName = process.env.DB_NAME || 'motor_vehicle_squadron_db';
-const baseConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT || 3306),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  multipleStatements: true
-};
+const databaseName = getDatabaseName();
 
 async function columnExists(connection, tableName, columnName) {
   const [rows] = await connection.query(
@@ -176,13 +168,14 @@ async function applyCompatibilityUpdates(connection) {
 }
 
 async function ensureDatabaseSchema() {
-  const connection = await mysql.createConnection(baseConfig);
+  const connection = await createDatabaseConnection({
+    includeDatabase: true,
+    multipleStatements: true,
+    allowCreateDatabase: true,
+  });
   const addedColumns = [];
 
   try {
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
-    await connection.query(`USE \`${databaseName}\``);
-
     await ensureTableDefinitions(connection);
 
     const columns = [
