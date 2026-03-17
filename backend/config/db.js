@@ -1,40 +1,36 @@
 const mysql = require('mysql2/promise');
 const {
   getDatabaseConfig,
-  getSafeDatabaseConfigForLogging,
+  logDatabaseConfig,
+  logDatabaseError,
 } = require('./databaseConfig');
 
-const pool = mysql.createPool({
+const poolConfig = {
   ...getDatabaseConfig({ includeDatabase: true }),
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
-});
+};
+
+const pool = mysql.createPool(poolConfig);
 
 async function verifyPoolConnection() {
-  const safeConfig = getSafeDatabaseConfigForLogging(
-    getDatabaseConfig({ includeDatabase: true })
-  );
-  const connection = await pool.getConnection();
+  logDatabaseConfig('Verifying MySQL pool connection', poolConfig);
+  let connection;
 
   try {
+    connection = await pool.getConnection();
     await connection.query('SELECT 1');
-    console.log(
-      `[db] MySQL pool ready host=${safeConfig.host} port=${safeConfig.port} ` +
-        `user=${safeConfig.user} database=${safeConfig.database} ` +
-        `ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
-    );
+    console.log('[db] MySQL pool verification passed');
   } catch (error) {
-    console.error(
-      `[db] MySQL pool verification failed host=${safeConfig.host} port=${safeConfig.port} ` +
-        `user=${safeConfig.user} database=${safeConfig.database} ` +
-        `ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
-    );
+    logDatabaseError('MySQL pool verification failed.', error);
     throw error;
   } finally {
-    connection.release();
+    if (connection) {
+      connection.release();
+    }
   }
 }
 

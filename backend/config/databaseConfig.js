@@ -92,6 +92,23 @@ function getSafeDatabaseConfigForLogging(config) {
   };
 }
 
+function logDatabaseConfig(prefix, config) {
+  const safeConfig = getSafeDatabaseConfigForLogging(config);
+  console.log(
+    `[db] ${prefix} source=${safeConfig.source} host=${safeConfig.host} ` +
+      `port=${safeConfig.port} user=${safeConfig.user} ` +
+      `database=${safeConfig.database} ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
+  );
+}
+
+function logDatabaseError(context, error) {
+  console.error(`[db] ${context}`);
+  console.error(`[db] message=${error && error.message ? error.message : 'Unknown error'}`);
+  console.error(`[db] code=${error && error.code ? error.code : 'N/A'}`);
+  console.error(`[db] errno=${error && error.errno !== undefined ? error.errno : 'N/A'}`);
+  console.error(`[db] sqlState=${error && error.sqlState ? error.sqlState : 'N/A'}`);
+}
+
 function buildBaseDatabaseConfig() {
   const databaseName = getDatabaseName();
   const rawUrl = getRawDatabaseUrl();
@@ -117,20 +134,21 @@ function buildBaseDatabaseConfig() {
   }
 
   const connectTimeout = Number(
-    process.env.DB_CONNECT_TIMEOUT || process.env.MYSQL_CONNECT_TIMEOUT || 10000
+    process.env.DB_CONNECT_TIMEOUT || process.env.MYSQL_CONNECT_TIMEOUT || 20000
   );
   if (!Number.isNaN(connectTimeout) && connectTimeout > 0) {
     config.connectTimeout = connectTimeout;
   }
 
   const shouldEnableSsl =
-    parseBoolean(process.env.DB_SSL) ||
-    parseBoolean(process.env.MYSQL_SSL) ||
+    parseBoolean(process.env.DB_SSL, true) ||
+    parseBoolean(process.env.MYSQL_SSL, true) ||
     isRailwayPublicHost(config.host);
 
   if (shouldEnableSsl) {
     config.ssl = {
-      rejectUnauthorized: parseBoolean(process.env.DB_SSL_REJECT_UNAUTHORIZED, false),
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
     };
   }
 
@@ -167,17 +185,19 @@ async function createDatabaseConnection({
   allowCreateDatabase = false,
 } = {}) {
   const databaseConfig = getDatabaseConfig({ includeDatabase, multipleStatements });
+  logDatabaseConfig('Opening MySQL connection', databaseConfig);
 
   try {
     return await mysql.createConnection(databaseConfig);
   } catch (error) {
     if (!includeDatabase || !allowCreateDatabase || !isMissingDatabaseError(error)) {
+      logDatabaseError('MySQL connection failed.', error);
       throw error;
     }
 
-    const adminConnection = await mysql.createConnection(
-      getDatabaseConfig({ includeDatabase: false, multipleStatements: true })
-    );
+    const adminConfig = getDatabaseConfig({ includeDatabase: false, multipleStatements: true });
+    logDatabaseConfig('Opening MySQL admin connection to create database', adminConfig);
+    const adminConnection = await mysql.createConnection(adminConfig);
 
     try {
       await adminConnection.query(`CREATE DATABASE IF NOT EXISTS \`${getDatabaseName()}\``);
@@ -185,29 +205,21 @@ async function createDatabaseConnection({
       await adminConnection.end();
     }
 
+    logDatabaseConfig('Retrying MySQL connection after database creation', databaseConfig);
     return mysql.createConnection(databaseConfig);
   }
 }
 
 async function verifyDatabaseConnection({ includeDatabase = true } = {}) {
+  const config = getDatabaseConfig({ includeDatabase });
+  logDatabaseConfig('Verifying direct MySQL connection', config);
   const connection = await createDatabaseConnection({ includeDatabase });
-  const safeConfig = getSafeDatabaseConfigForLogging(
-    getDatabaseConfig({ includeDatabase })
-  );
 
   try {
     await connection.query('SELECT 1');
-    console.log(
-      `[db] MySQL connection established (${safeConfig.source}) ` +
-        `host=${safeConfig.host} port=${safeConfig.port} user=${safeConfig.user} ` +
-        `database=${safeConfig.database} ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
-    );
+    console.log('[db] Direct MySQL connection verification passed');
   } catch (error) {
-    console.error(
-      `[db] MySQL connection check failed ` +
-        `host=${safeConfig.host} port=${safeConfig.port} user=${safeConfig.user} ` +
-        `database=${safeConfig.database} ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
-    );
+    logDatabaseError('Direct MySQL connection verification failed.', error);
     throw error;
   } finally {
     await connection.end();
@@ -220,5 +232,7 @@ module.exports = {
   getDatabaseName,
   getRawDatabaseUrl,
   getSafeDatabaseConfigForLogging,
+  logDatabaseConfig,
+  logDatabaseError,
   verifyDatabaseConnection,
 };
