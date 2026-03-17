@@ -1,5 +1,4 @@
 const express = require('express');
-const path = require('path');
 const session = require('express-session');
 const helmet = require('helmet');
 require('dotenv').config();
@@ -80,10 +79,6 @@ app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/activity-logs', activityLogRoutes);
 app.use('/api/reports', reportRoutes);
 
-const frontendPath = path.join(__dirname, '..', 'frontend');
-app.use('/assets', express.static(path.join(__dirname, 'public')));
-app.use(express.static(frontendPath));
-
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' });
 });
@@ -92,8 +87,13 @@ app.get('/health', (_, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('*', (_, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+app.get('/', (_, res) => {
+  res.json({
+    name: 'Motor Vehicle Squadron Management System API',
+    status: 'ok',
+    frontend: allowedFrontendOrigins[0] || null,
+    health: '/api/health',
+  });
 });
 
 app.use((err, req, res, next) => {
