@@ -4,7 +4,7 @@ function toDriver(row) {
   return {
     id: row.id,
     fullName: row.full_name,
-    rank: row.rank,
+    rank: row.user_rank,
     licenseNumber: row.license_number,
     licenseType: row.license_type || undefined,
     licenseExpiry: row.license_expiry ? String(row.license_expiry).slice(0, 10) : '',
@@ -19,7 +19,23 @@ function toDriver(row) {
 
 async function listDrivers(req, res, next) {
   try {
-    const [rows] = await db.query('SELECT * FROM drivers ORDER BY id ASC');
+    const [rows] = await db.query(
+      `SELECT
+         id,
+         full_name,
+         user_rank,
+         license_number,
+         license_type,
+         license_expiry,
+         section,
+         assigned_vehicle,
+         status,
+         contact_number,
+         missions_this_month,
+         last_dispatch
+       FROM drivers
+       ORDER BY id ASC`
+    );
     res.json(rows.map(toDriver));
   } catch (error) {
     next(error);
@@ -49,7 +65,7 @@ async function createDriver(req, res, next) {
 
     await db.query(
       `INSERT INTO drivers (
-         id, full_name, rank, license_number, license_type, license_expiry, section,
+         id, full_name, user_rank, license_number, license_type, license_expiry, section,
          assigned_vehicle, status, contact_number, missions_this_month, last_dispatch
        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -96,7 +112,7 @@ async function updateDriver(req, res, next) {
 
     const [result] = await db.query(
       `UPDATE drivers
-       SET full_name = ?, rank = ?, license_number = ?, license_type = ?, license_expiry = ?, section = ?,
+       SET full_name = ?, user_rank = ?, license_number = ?, license_type = ?, license_expiry = ?, section = ?,
            assigned_vehicle = ?, status = ?, contact_number = ?, missions_this_month = ?, last_dispatch = ?
        WHERE id = ?`,
       [
@@ -152,7 +168,7 @@ async function bulkUpsertDrivers(req, res, next) {
     for (const row of rows) {
       await connection.query(
         `INSERT INTO drivers (
-           id, full_name, rank, license_number, license_type, license_expiry, section,
+           id, full_name, user_rank, license_number, license_type, license_expiry, section,
            assigned_vehicle, status, contact_number, missions_this_month, last_dispatch
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [

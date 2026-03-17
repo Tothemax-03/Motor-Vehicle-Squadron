@@ -1,4 +1,9 @@
-const { createDatabaseConnection, getDatabaseName } = require('../config/databaseConfig');
+const {
+  createDatabaseConnection,
+  getDatabaseConfig,
+  getDatabaseName,
+  getSafeDatabaseConfigForLogging,
+} = require('../config/databaseConfig');
 
 const databaseName = getDatabaseName();
 
@@ -19,6 +24,20 @@ async function ensureColumn(connection, tableName, columnName, definition) {
   const exists = await columnExists(connection, tableName, columnName);
   if (exists) return false;
   await connection.query(`ALTER TABLE \`${tableName}\` ADD COLUMN ${definition}`);
+  return true;
+}
+
+async function renameColumnIfNeeded(connection, tableName, oldColumnName, newDefinition) {
+  const oldExists = await columnExists(connection, tableName, oldColumnName);
+  if (!oldExists) return false;
+
+  const newColumnName = newDefinition.split(/\s+/)[0].replace(/`/g, '');
+  const newExists = await columnExists(connection, tableName, newColumnName);
+  if (newExists) return false;
+
+  await connection.query(
+    `ALTER TABLE \`${tableName}\` CHANGE COLUMN \`${oldColumnName}\` ${newDefinition}`
+  );
   return true;
 }
 
@@ -65,7 +84,7 @@ async function ensureTableDefinitions(connection) {
     `CREATE TABLE IF NOT EXISTS drivers (
       id VARCHAR(24) PRIMARY KEY,
       full_name VARCHAR(120) NOT NULL,
-      rank VARCHAR(30) NOT NULL,
+      user_rank VARCHAR(30) NOT NULL,
       license_number VARCHAR(60) NOT NULL UNIQUE,
       license_type VARCHAR(80) NULL,
       license_expiry DATE NOT NULL,
@@ -168,6 +187,15 @@ async function applyCompatibilityUpdates(connection) {
 }
 
 async function ensureDatabaseSchema() {
+  const safeConfig = getSafeDatabaseConfigForLogging(
+    getDatabaseConfig({ includeDatabase: true, multipleStatements: true })
+  );
+  console.log(
+    `[db] Ensuring schema host=${safeConfig.host} port=${safeConfig.port} ` +
+      `user=${safeConfig.user} database=${safeConfig.database} ` +
+      `ssl=${safeConfig.sslEnabled ? 'enabled' : 'disabled'}`
+  );
+
   const connection = await createDatabaseConnection({
     includeDatabase: true,
     multipleStatements: true,
@@ -177,6 +205,16 @@ async function ensureDatabaseSchema() {
 
   try {
     await ensureTableDefinitions(connection);
+
+    const renamedRankColumn = await renameColumnIfNeeded(
+      connection,
+      'drivers',
+      'rank',
+      'user_rank VARCHAR(30) NOT NULL'
+    );
+    if (renamedRankColumn) {
+      addedColumns.push('drivers.user_rank');
+    }
 
     const columns = [
       ['users', 'username', 'username VARCHAR(80) NULL AFTER full_name'],

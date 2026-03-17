@@ -14,8 +14,8 @@ async function resetDemoData() {
     const schemaPath = path.join(__dirname, 'schema.sql');
     const schemaSql = fs
       .readFileSync(schemaPath, 'utf8')
-      .replace(/CREATE DATABASE IF NOT EXISTS\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `CREATE DATABASE IF NOT EXISTS \`${getDatabaseName()}\`;`)
-      .replace(/USE\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `USE \`${getDatabaseName()}\`;`);
+      .replace(/CREATE DATABASE IF NOT EXISTS\s+[`"]?motor_vehicle_squadron[`"]?;/i, `CREATE DATABASE IF NOT EXISTS \`${getDatabaseName()}\`;`)
+      .replace(/USE\s+[`"]?motor_vehicle_squadron[`"]?;/i, `USE \`${getDatabaseName()}\`;`);
     await connection.query(schemaSql);
     process.stdout.write('Demo database reset completed.\n');
   } finally {

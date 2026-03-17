@@ -3,3 +3,5 @@ dist
 .codex-temp-remote
 .env
 .env.*
+!.env.example
+!backend/.env.example

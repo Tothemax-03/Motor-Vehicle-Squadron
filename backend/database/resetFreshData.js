@@ -18,8 +18,8 @@ async function resetFreshData() {
     const databaseName = getDatabaseName();
     const schemaSql = fs
       .readFileSync(schemaPath, 'utf8')
-      .replace(/CREATE DATABASE IF NOT EXISTS\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `CREATE DATABASE IF NOT EXISTS \`${databaseName}\`;`)
-      .replace(/USE\s+[`"]?motor_vehicle_squadron_db[`"]?;/i, `USE \`${databaseName}\`;`);
+      .replace(/CREATE DATABASE IF NOT EXISTS\s+[`"]?motor_vehicle_squadron[`"]?;/i, `CREATE DATABASE IF NOT EXISTS \`${databaseName}\`;`)
+      .replace(/USE\s+[`"]?motor_vehicle_squadron[`"]?;/i, `USE \`${databaseName}\`;`);
     await connection.query(schemaSql);
 
     await connection.query(
