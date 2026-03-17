@@ -5,7 +5,17 @@ type RequestOptions = {
   allowUnauthorized?: boolean;
 };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const rawApiBase =
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  "/api";
+const normalizedApiBase = rawApiBase.trim().replace(/\/+$/, "");
+const API_BASE =
+  normalizedApiBase === "" || normalizedApiBase === "/api"
+    ? "/api"
+    : normalizedApiBase.endsWith("/api")
+      ? normalizedApiBase
+      : `${normalizedApiBase}/api`;
 
 export interface ApiError extends Error {
   status?: number;

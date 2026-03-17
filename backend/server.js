@@ -4,6 +4,8 @@ const session = require('express-session');
 const helmet = require('helmet');
 require('dotenv').config();
 const { ensureDatabaseSchema } = require('./database/ensureSchema');
+const db = require('./config/db');
+const { logDatabaseError } = require('./config/databaseConfig');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -17,13 +19,32 @@ const activityLogRoutes = require('./routes/activityLogRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
-const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const allowedFrontendOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionCookieSameSite = process.env.SESSION_COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
+const sessionCookieSecure =
+  process.env.SESSION_COOKIE_SECURE !== undefined
+    ? process.env.SESSION_COOKIE_SECURE === 'true'
+    : isProduction;
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.set('trust proxy', 1);
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', frontendOrigin);
+  const requestOrigin = req.headers.origin;
+  const matchedOrigin =
+    requestOrigin && allowedFrontendOrigins.includes(requestOrigin)
+      ? requestOrigin
+      : allowedFrontendOrigins[0];
+
+  if (matchedOrigin) {
+    res.header('Access-Control-Allow-Origin', matchedOrigin);
+  }
+  res.header('Vary', 'Origin');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -38,10 +59,11 @@ app.use(
     secret: process.env.SESSION_SECRET || 'change_this_secret_key',
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction,
     cookie: {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: false,
+      sameSite: sessionCookieSameSite,
+      secure: sessionCookieSecure,
       maxAge: 1000 * 60 * 60 * 8
     }
   })
@@ -62,6 +84,10 @@ const frontendPath = path.join(__dirname, '..', 'frontend');
 app.use('/assets', express.static(path.join(__dirname, 'public')));
 app.use(express.static(frontendPath));
 
+app.get('/api/health', (_, res) => {
+  res.json({ status: 'ok' });
+});
+
 app.get('/health', (_, res) => {
   res.json({ status: 'ok' });
 });
@@ -71,7 +97,6 @@ app.get('*', (_, res) => {
 });
 
 app.use((err, req, res, next) => {
-  const isProduction = process.env.NODE_ENV === 'production';
   const statusCode = err && Number.isInteger(err.status) ? err.status : 500;
 
   if (statusCode >= 500) {
@@ -97,6 +122,7 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   const result = await ensureDatabaseSchema();
+  await db.verifyConnection();
   if (result.addedColumns.length > 0) {
     console.log(`Schema compatibility update applied: ${result.addedColumns.join(', ')}`);
   }
@@ -108,6 +134,7 @@ async function startServer() {
 
 startServer().catch((error) => {
   console.error('Failed to start MVSMS backend.');
+  logDatabaseError('Backend startup failed.', error);
   console.error(error && error.stack ? error.stack : error);
   process.exit(1);
 });
