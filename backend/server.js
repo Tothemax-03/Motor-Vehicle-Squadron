@@ -17,11 +17,50 @@ const workOrderRoutes = require('./routes/workOrderRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
+function normalizeOrigin(origin) {
+  if (!origin) return null;
+
+  try {
+    const parsed = new URL(origin.trim());
+    return `${parsed.protocol}//${parsed.host}`.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function buildAllowedOrigins(configuredOrigins) {
+  const expandedOrigins = new Set();
+
+  for (const origin of configuredOrigins) {
+    const normalized = normalizeOrigin(origin);
+    if (!normalized) continue;
+
+    expandedOrigins.add(normalized);
+
+    try {
+      const parsed = new URL(normalized);
+
+      if (parsed.hostname.startsWith('www.')) {
+        parsed.hostname = parsed.hostname.slice(4);
+        expandedOrigins.add(`${parsed.protocol}//${parsed.host}`.toLowerCase());
+      } else {
+        parsed.hostname = `www.${parsed.hostname}`;
+        expandedOrigins.add(`${parsed.protocol}//${parsed.host}`.toLowerCase());
+      }
+    } catch {
+      // Skip invalid variants.
+    }
+  }
+
+  return Array.from(expandedOrigins);
+}
+
 const app = express();
-const allowedFrontendOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
+const configuredFrontendOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedFrontendOrigins = buildAllowedOrigins(configuredFrontendOrigins);
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionCookieSameSite = process.env.SESSION_COOKIE_SAME_SITE || (isProduction ? 'none' : 'lax');
 const sessionCookieSecure =
@@ -35,10 +74,11 @@ app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin;
+  const normalizedRequestOrigin = normalizeOrigin(requestOrigin);
   const matchedOrigin =
-    requestOrigin && allowedFrontendOrigins.includes(requestOrigin)
+    normalizedRequestOrigin && allowedFrontendOrigins.includes(normalizedRequestOrigin)
       ? requestOrigin
-      : allowedFrontendOrigins[0];
+      : configuredFrontendOrigins[0];
 
   if (matchedOrigin) {
     res.header('Access-Control-Allow-Origin', matchedOrigin);
@@ -91,7 +131,7 @@ app.get('/', (_, res) => {
   res.json({
     name: 'Motor Vehicle Squadron Management System API',
     status: 'ok',
-    frontend: allowedFrontendOrigins[0] || null,
+    frontend: configuredFrontendOrigins.join(', ') || null,
     health: '/api/health',
   });
 });
