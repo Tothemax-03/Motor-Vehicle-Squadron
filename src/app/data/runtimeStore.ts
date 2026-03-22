@@ -9,7 +9,7 @@ import type {
   Vehicle,
 } from "./fleetData";
 import { apiClient, type ApiError } from "./apiClient";
-import { isStaffRole } from "./accessControl";
+import { isAdminRole } from "./accessControl";
 
 const KEYS = {
   vehicles: "mvsm_runtime_vehicles",
@@ -278,7 +278,7 @@ export function getCurrentUser() {
 
 export async function fetchUsersFromServer() {
   const session = getCurrentSession();
-  if (isStaffRole(session?.role)) {
+  if (!isAdminRole(session?.role)) {
     writeRows(KEYS.users, []);
     return [];
   }
@@ -309,23 +309,14 @@ export async function syncRuntimeFromServer() {
   }
 
   setCurrentSession(session);
-
-  if (isStaffRole(session.role)) {
-    writeRows(KEYS.vehicles, []);
-    writeRows(KEYS.drivers, []);
-    writeRows(KEYS.missions, []);
-    writeRows(KEYS.maintenance, []);
-    writeRows(KEYS.audit, []);
-    writeRows(KEYS.users, []);
-    return true;
-  }
+  const canAccessAdminData = isAdminRole(session.role);
 
   const results = await Promise.allSettled([
     apiClient.vehicles.list(),
     apiClient.drivers.list(),
     apiClient.movements.list(),
     apiClient.maintenance.list(),
-    apiClient.activityLogs.list(),
+    canAccessAdminData ? apiClient.activityLogs.list() : Promise.resolve([]),
     fetchUsersFromServer(),
   ]);
 

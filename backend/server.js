@@ -113,16 +113,16 @@ app.use(
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, requireAdmin, userRoutes);
-app.use('/api/dashboard', requireAuth, requireAdmin, dashboardRoutes);
-app.use('/api/vehicles', requireAuth, requireAdmin, vehicleRoutes);
-app.use('/api/drivers', requireAuth, requireAdmin, driverRoutes);
-app.use('/api/movements', requireAuth, requireAdmin, movementRoutes);
-app.use('/api/maintenance', requireAuth, requireAdmin, maintenanceRoutes);
-app.use('/api/work-orders', requireAuth, requireAdmin, workOrderRoutes);
+app.use('/api/dashboard', requireAuth, requireAdminOrStaff, dashboardRoutes);
+app.use('/api/vehicles', requireAuth, requireAdminOrStaff, vehicleRoutes);
+app.use('/api/drivers', requireAuth, requireAdminOrStaff, driverRoutes);
+app.use('/api/movements', requireAuth, requireAdminOrStaff, movementRoutes);
+app.use('/api/maintenance', requireAuth, requireAdminOrStaff, maintenanceRoutes);
+app.use('/api/work-orders', requireAuth, requireAdminOrStaff, workOrderRoutes);
 app.use('/api/activity-logs', requireAuth, requireAdmin, activityLogRoutes);
 app.use('/api/logs', requireAuth, requireAdmin, activityLogRoutes);
 app.use('/api/settings', requireAuth, requireAdminOrStaff, settingsRoutes);
-app.use('/api/reports', requireAuth, requireAdmin, reportRoutes);
+app.use('/api/reports', requireAuth, requireAdminOrStaff, reportRoutes);
 
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' });

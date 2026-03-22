@@ -26,7 +26,7 @@ import {
 import { BrandIdentity } from "./shared/BrandIdentity";
 import type { DriverProfile, MaintenanceRecord, Mission, UserAccount, Vehicle } from "../data/fleetData";
 import { apiClient } from "../data/apiClient";
-import { getDefaultAuthorizedRoute, getVisibleNavigation, isAdminRole, isStaffRole } from "../data/accessControl";
+import { getVisibleNavigation, isAdminRole } from "../data/accessControl";
 import {
   clearCurrentSession,
   getCurrentUser,
@@ -183,7 +183,7 @@ function buildSearchResults(query: string) {
 }
 
 function buildNotifications(currentUser: UserAccount | null) {
-  if (!currentUser || !isAdminRole(currentUser.role)) {
+  if (!currentUser) {
     return [];
   }
 
@@ -195,15 +195,17 @@ function buildNotifications(currentUser: UserAccount | null) {
   const drivers = getRuntimeDrivers();
   const auditTrail = getRuntimeAuditTrail();
 
-  users.filter((user) => user.status === "Pending").slice(0, 3).forEach((user) => {
-    notices.push({
-      id: `pending-user-${user.id}`,
-      title: "New user request pending approval",
-      description: `${user.fullName} (${user.email}) is awaiting approval.`,
-      timestamp: user.createdAt,
-      route: "/users",
+  if (isAdminRole(currentUser.role)) {
+    users.filter((user) => user.status === "Pending").slice(0, 3).forEach((user) => {
+      notices.push({
+        id: `pending-user-${user.id}`,
+        title: "New user request pending approval",
+        description: `${user.fullName} (${user.email}) is awaiting approval.`,
+        timestamp: user.createdAt,
+        route: "/users",
+      });
     });
-  });
+  }
 
   const dueThreshold = new Date();
   dueThreshold.setDate(dueThreshold.getDate() + 7);
@@ -253,15 +255,17 @@ function buildNotifications(currentUser: UserAccount | null) {
     });
   });
 
-  auditTrail.filter((entry) => entry.severity === "Critical").slice(0, 2).forEach((entry) => {
-    notices.push({
-      id: `audit-${entry.id}`,
-      title: "Critical system activity",
-      description: `${entry.module}: ${entry.action}`,
-      timestamp: entry.timestamp,
-      route: "/activity-logs",
+  if (isAdminRole(currentUser.role)) {
+    auditTrail.filter((entry) => entry.severity === "Critical").slice(0, 2).forEach((entry) => {
+      notices.push({
+        id: `audit-${entry.id}`,
+        title: "Critical system activity",
+        description: `${entry.module}: ${entry.action}`,
+        timestamp: entry.timestamp,
+        route: "/activity-logs",
+      });
     });
-  });
+  }
 
   return Array.from(new Map(notices.map((notice) => [notice.id, notice])).values())
     .sort((a, b) => (parseDateValue(b.timestamp)?.getTime() || 0) - (parseDateValue(a.timestamp)?.getTime() || 0))
@@ -336,13 +340,6 @@ export function Layout() {
   }, [location.pathname, navigate]);
 
   useEffect(() => {
-    if (!currentUser) return;
-    if (!isStaffRole(currentUser.role)) return;
-    if (location.pathname === "/settings") return;
-    navigate(getDefaultAuthorizedRoute(currentUser.role), { replace: true });
-  }, [currentUser, location.pathname, navigate]);
-
-  useEffect(() => {
     const intervalId = window.setInterval(() => setRefreshTick((previous) => previous + 1), 10000);
     return () => window.clearInterval(intervalId);
   }, []);
@@ -358,8 +355,8 @@ export function Layout() {
   const meta = pageMeta[location.pathname] ?? pageMeta["/"];
   const roleBadgeClass = currentUser?.role === "Admin" ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-emerald-200 bg-emerald-50 text-emerald-700";
   const visibleNavigation = getVisibleNavigation(currentUser?.role);
-  const profileRoute = currentUser?.role === "Admin" ? "/users" : "/settings";
-  const profileLabel = currentUser?.role === "Admin" ? "User Management" : "Settings";
+  const profileRoute = currentUser?.role === "Admin" ? "/users" : "/";
+  const profileLabel = currentUser?.role === "Admin" ? "User Management" : "Dashboard";
 
   const handleSignOut = () => {
     (async () => {
@@ -474,7 +471,7 @@ export function Layout() {
               <div className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600 lg:flex"><Activity className="h-3.5 w-3.5" />Last sync {getCurrentTime()}</div>
               {visibleNavigation.showNotifications ? <div ref={notificationRef} className="relative">
                 <button className="relative rounded-lg border border-slate-200 p-2 text-slate-500 transition-colors hover:bg-slate-100" type="button" onClick={() => setNotificationsOpen((previous) => !previous)}><Bell className="h-4 w-4" />{unreadCount > 0 ? <span className="absolute -right-0.5 -top-0.5 h-4 min-w-4 rounded-full bg-red-500 px-1 text-[10px] leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}</button>
-                {notificationsOpen ? <div className="absolute right-0 top-full z-50 mt-2 w-[360px] rounded-xl border border-slate-200 bg-white shadow-lg"><div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">System Notifications</p><p className="text-xs text-slate-500">{unreadCount} unread alert(s)</p></div><button type="button" onClick={markAllRead} disabled={unreadCount === 0} className="text-xs text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:text-slate-300">Mark all as read</button></div><div className="max-h-[340px] overflow-y-auto">{notificationsWithRead.length === 0 ? <div className="px-4 py-6 text-center text-sm text-slate-500">No notifications available.</div> : notificationsWithRead.map((notification) => <article key={notification.id} className={`border-b border-slate-100 px-4 py-3 ${notification.read ? "bg-white" : "bg-blue-50/35"}`}><div className="flex items-start justify-between gap-2"><button type="button" onClick={() => { markRead(notification.id); setNotificationsOpen(false); navigate(notification.route); }} className="min-w-0 flex-1 text-left"><p className="text-sm font-medium text-slate-800">{notification.title}</p><p className="mt-0.5 text-xs text-slate-600">{notification.description}</p><p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(notification.timestamp)}</p></button>{!notification.read ? <button type="button" onClick={() => markRead(notification.id)} className="shrink-0 text-[11px] text-slate-600 hover:text-slate-800">Mark as read</button> : <span className="shrink-0 text-[11px] text-slate-400">Read</span>}</div></article>)}</div><div className="border-t border-slate-100 px-4 py-2"><button type="button" onClick={() => { setNotificationsOpen(false); navigate("/activity-logs"); }} className="text-xs text-slate-600 hover:text-slate-800">View full activity logs</button></div></div> : null}
+                {notificationsOpen ? <div className="absolute right-0 top-full z-50 mt-2 w-[360px] rounded-xl border border-slate-200 bg-white shadow-lg"><div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">System Notifications</p><p className="text-xs text-slate-500">{unreadCount} unread alert(s)</p></div><button type="button" onClick={markAllRead} disabled={unreadCount === 0} className="text-xs text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:text-slate-300">Mark all as read</button></div><div className="max-h-[340px] overflow-y-auto">{notificationsWithRead.length === 0 ? <div className="px-4 py-6 text-center text-sm text-slate-500">No notifications available.</div> : notificationsWithRead.map((notification) => <article key={notification.id} className={`border-b border-slate-100 px-4 py-3 ${notification.read ? "bg-white" : "bg-blue-50/35"}`}><div className="flex items-start justify-between gap-2"><button type="button" onClick={() => { markRead(notification.id); setNotificationsOpen(false); navigate(notification.route); }} className="min-w-0 flex-1 text-left"><p className="text-sm font-medium text-slate-800">{notification.title}</p><p className="mt-0.5 text-xs text-slate-600">{notification.description}</p><p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(notification.timestamp)}</p></button>{!notification.read ? <button type="button" onClick={() => markRead(notification.id)} className="shrink-0 text-[11px] text-slate-600 hover:text-slate-800">Mark as read</button> : <span className="shrink-0 text-[11px] text-slate-400">Read</span>}</div></article>)}</div>{visibleNavigation.showActivityLogs ? <div className="border-t border-slate-100 px-4 py-2"><button type="button" onClick={() => { setNotificationsOpen(false); navigate("/activity-logs"); }} className="text-xs text-slate-600 hover:text-slate-800">View full activity logs</button></div> : null}</div> : null}
               </div> : null}
               <div ref={userMenuRef} className="relative">
                 <button onClick={() => setUserMenuOpen((previous) => !previous)} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition-colors hover:bg-slate-50" type="button"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0b1728]"><User className="h-4 w-4 text-white" /></div><div className="hidden sm:block"><p className="text-sm text-slate-800">{currentUser.fullName}</p><div className="mt-0.5 flex items-center gap-1.5"><span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${roleBadgeClass}`}>{currentUser.role}</span></div></div><ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" /></button>

@@ -15,12 +15,12 @@ import { SignUp } from "./components/auth/SignUp";
 import { ProtectedRoute } from "./components/shared/ProtectedRoute";
 
 const AdminOnly = ({ children }: { children: ReactNode }) => (
-  <ProtectedRoute allow={["Admin"]} redirectTo="/settings">
+  <ProtectedRoute allow={["Admin"]} redirectTo="/">
     {children}
   </ProtectedRoute>
 );
 
-const SettingsAccess = ({ children }: { children: ReactNode }) => (
+const OperationalAccess = ({ children }: { children: ReactNode }) => (
   <ProtectedRoute allow={["Admin", "Staff"]}>
     {children}
   </ProtectedRoute>
@@ -36,49 +36,49 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <Overview />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
         path: "movement",
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <MovementMonitoring />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
         path: "maintenance",
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <MaintenanceMonitoring />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
         path: "fleet",
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <FleetRegistry />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
         path: "drivers",
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <DriverManagement />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
         path: "reports",
         element: (
-          <AdminOnly>
+          <OperationalAccess>
             <Reports />
-          </AdminOnly>
+          </OperationalAccess>
         ),
       },
       {
@@ -92,9 +92,9 @@ export const router = createBrowserRouter([
       {
         path: "settings",
         element: (
-          <SettingsAccess>
+          <OperationalAccess>
             <SettingsPage />
-          </SettingsAccess>
+          </OperationalAccess>
         ),
       },
       {
