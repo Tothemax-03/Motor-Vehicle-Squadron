@@ -17,13 +17,13 @@ import {
   Menu,
   Search,
   Settings,
-  Shield,
   Truck,
   User,
   Users,
   Wrench,
   X,
 } from "lucide-react";
+import { BrandIdentity } from "./shared/BrandIdentity";
 import type { DriverProfile, MaintenanceRecord, Mission, UserAccount, Vehicle } from "../data/fleetData";
 import { apiClient } from "../data/apiClient";
 import {
@@ -405,10 +405,14 @@ export function Layout() {
 
       <aside className={`fixed z-50 flex h-full flex-col border-r border-slate-800/40 bg-gradient-to-b from-[#071423] via-[#091a2f] to-[#0a1f35] text-white transition-all duration-300 ease-out lg:relative ${collapsed ? "w-[86px]" : "w-[292px]"} ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div className="border-b border-white/10 px-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-700/90 shadow-inner shadow-emerald-200/10"><Shield className="h-5 w-5" /></div>
-            {!collapsed ? <div className="overflow-hidden"><p className="truncate text-[11px] uppercase tracking-[0.16em] text-emerald-300">MVSMS Command</p><p className="truncate text-sm text-white">Motor Vehicle Squadron</p></div> : null}
-          </div>
+          <BrandIdentity
+            collapsed={collapsed}
+            eyebrow="Motor Vehicle Squadron"
+            title="Management System"
+            iconContainerClassName="bg-white/95 shadow-inner shadow-emerald-200/15"
+            eyebrowClassName="text-emerald-300"
+            titleClassName="text-white"
+          />
           {!collapsed ? <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-200/85"><BadgeCheck className="h-3.5 w-3.5 text-emerald-300" />Enterprise Operations Console</div> : null}
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">{renderNavSection("Operations", operationsNav)}{renderNavSection("Administration", adminNav)}</nav>

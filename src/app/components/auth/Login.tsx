@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  Shield,
   User,
   Lock,
   Eye,
@@ -15,6 +14,7 @@ import {
   setCurrentSession,
 } from "../../data/runtimeStore";
 import { apiClient, type ApiError } from "../../data/apiClient";
+import { BrandIdentity } from "../shared/BrandIdentity";
 
 const BG_IMAGE =
   "https://images.unsplash.com/photo-1678818048682-44b5cc5375a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaWxpdGFyeSUyMGNvbnZveSUyMHZlaGljbGVzJTIwbmlnaHQlMjBkYXJrfGVufDF8fHx8MTc3MjcwNjcyNHww&ixlib=rb-4.1.0&q=80&w=1080";
@@ -94,15 +94,14 @@ export function Login() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-[#0d1b2a]/95 via-[#0d1b2a]/85 to-[#1e3a5f]/70" />
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1e6b3c] shadow-lg">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-widest text-[#7ecb9c]">MVS Command</p>
-            <p className="text-sm text-white">Motor Vehicle Squadron</p>
-          </div>
-        </div>
+        <BrandIdentity
+          eyebrow="Motor Vehicle Squadron"
+          title="Management System"
+          iconContainerClassName="bg-white/95"
+          eyebrowClassName="text-[#7ecb9c]"
+          titleClassName="text-white"
+          fallbackIconClassName="text-[#1e6b3c]"
+        />
 
         <div className="relative z-10 space-y-6">
           <div>

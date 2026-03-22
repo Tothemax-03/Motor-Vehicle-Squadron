@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { AlertCircle, CheckCircle2, Shield, UserPlus } from "lucide-react";
+import { AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
 import { getCurrentUser } from "../../data/runtimeStore";
 import { apiClient, type ApiError } from "../../data/apiClient";
 import {
@@ -11,6 +11,7 @@ import {
   type UserAccountFormValues,
   validateUserAccountForm,
 } from "../shared/UserAccountForm";
+import { BrandIdentity } from "../shared/BrandIdentity";
 
 const SECTIONS = [
   "HHC Section",
@@ -138,15 +139,14 @@ export function SignUp() {
         <div className="absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-[#1e6b3c]/20 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-48 w-48 -translate-x-1/4 translate-y-1/4 rounded-full bg-[#1e3a5f]/40 blur-3xl" />
 
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1e6b3c] shadow-lg">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-widest text-[#7ecb9c]">MVS Command</p>
-            <p className="text-sm text-white">Motor Vehicle Squadron</p>
-          </div>
-        </div>
+        <BrandIdentity
+          eyebrow="Motor Vehicle Squadron"
+          title="Management System"
+          iconContainerClassName="bg-white/95"
+          eyebrowClassName="text-[#7ecb9c]"
+          titleClassName="text-white"
+          fallbackIconClassName="text-[#1e6b3c]"
+        />
 
         <div className="relative z-10 space-y-5">
           <div>
