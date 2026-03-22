@@ -1,6 +1,6 @@
 Place your logo image here as:
 
-mvsm-logo.png
+mvsm-logo.jpg
 
 The app will automatically use it for:
 - browser tab icon

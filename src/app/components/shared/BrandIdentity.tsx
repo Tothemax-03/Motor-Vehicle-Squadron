@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Shield } from "lucide-react";
 import { cn } from "../ui/utils";
 
-const BRAND_LOGO_SRC = "/mvsm-logo.png";
+const BRAND_LOGO_SRC = "/mvsm-logo.jpg";
 
 interface BrandIdentityProps {
   collapsed?: boolean;
