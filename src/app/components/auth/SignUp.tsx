@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
 import { getCurrentUser } from "../../data/runtimeStore";
 import { apiClient, type ApiError } from "../../data/apiClient";
+import { getDefaultAuthorizedRoute } from "../../data/accessControl";
 import {
   buildUsernameFromEmail,
   createUserAccountFormValues,
@@ -56,7 +57,7 @@ export function SignUp() {
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (currentUser) {
-      navigate("/", { replace: true });
+      navigate(getDefaultAuthorizedRoute(currentUser.role), { replace: true });
     }
   }, [navigate]);
 

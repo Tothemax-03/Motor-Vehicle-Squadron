@@ -5,6 +5,8 @@ require('dotenv').config();
 const { ensureDatabaseSchema } = require('./database/ensureSchema');
 const db = require('./config/db');
 const { logDatabaseError } = require('./config/databaseConfig');
+const { requireAuth } = require('./middlewares/auth');
+const { requireAdmin, requireAdminOrStaff } = require('./middlewares/roleMiddleware');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -15,6 +17,7 @@ const movementRoutes = require('./routes/movementRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
 const workOrderRoutes = require('./routes/workOrderRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 
 function normalizeOrigin(origin) {
@@ -109,15 +112,17 @@ app.use(
 );
 
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/vehicles', vehicleRoutes);
-app.use('/api/drivers', driverRoutes);
-app.use('/api/movements', movementRoutes);
-app.use('/api/maintenance', maintenanceRoutes);
-app.use('/api/work-orders', workOrderRoutes);
-app.use('/api/activity-logs', activityLogRoutes);
-app.use('/api/reports', reportRoutes);
+app.use('/api/users', requireAuth, requireAdmin, userRoutes);
+app.use('/api/dashboard', requireAuth, requireAdmin, dashboardRoutes);
+app.use('/api/vehicles', requireAuth, requireAdmin, vehicleRoutes);
+app.use('/api/drivers', requireAuth, requireAdmin, driverRoutes);
+app.use('/api/movements', requireAuth, requireAdmin, movementRoutes);
+app.use('/api/maintenance', requireAuth, requireAdmin, maintenanceRoutes);
+app.use('/api/work-orders', requireAuth, requireAdmin, workOrderRoutes);
+app.use('/api/activity-logs', requireAuth, requireAdmin, activityLogRoutes);
+app.use('/api/logs', requireAuth, requireAdmin, activityLogRoutes);
+app.use('/api/settings', requireAuth, requireAdminOrStaff, settingsRoutes);
+app.use('/api/reports', requireAuth, requireAdmin, reportRoutes);
 
 app.get('/api/health', (_, res) => {
   res.json({ status: 'ok' });

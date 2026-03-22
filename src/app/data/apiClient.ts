@@ -119,6 +119,10 @@ export const apiClient = {
     bulk: (rows: any[]) => request<{ message: string }>("/activity-logs/bulk", { method: "PUT", body: { rows } }),
     create: (payload: any) => request<{ message: string }>("/activity-logs", { method: "POST", body: payload }),
   },
+  settings: {
+    get: () => request<any>("/settings"),
+    update: (payload: any) => request<{ message: string; settings: any }>("/settings", { method: "PUT", body: payload }),
+  },
   dashboard: {
     summary: () => request<any>("/dashboard/summary"),
   },

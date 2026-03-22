@@ -1,11 +1,12 @@
 const express = require('express');
 const controller = require('../controllers/activityLogController');
-const { requireAuth, requireRole } = require('../middlewares/auth');
+const { requireAuth } = require('../middlewares/auth');
+const { requireAdmin } = require('../middlewares/roleMiddleware');
 
 const router = express.Router();
 
-router.get('/', requireAuth, controller.listActivityLogs);
-router.post('/', requireRole('Admin', 'Staff'), controller.createActivityLog);
-router.put('/bulk', requireRole('Admin', 'Staff'), controller.bulkUpsertActivityLogs);
+router.get('/', requireAuth, requireAdmin, controller.listActivityLogs);
+router.post('/', requireAuth, requireAdmin, controller.createActivityLog);
+router.put('/bulk', requireAuth, requireAdmin, controller.bulkUpsertActivityLogs);
 
 module.exports = router;

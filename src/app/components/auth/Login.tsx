@@ -14,6 +14,7 @@ import {
   setCurrentSession,
 } from "../../data/runtimeStore";
 import { apiClient, type ApiError } from "../../data/apiClient";
+import { getDefaultAuthorizedRoute } from "../../data/accessControl";
 import { BrandIdentity } from "../shared/BrandIdentity";
 
 const BG_IMAGE =
@@ -32,7 +33,7 @@ export function Login() {
   useEffect(() => {
     const currentUser = getCurrentUser();
     if (currentUser) {
-      navigate("/", { replace: true });
+      navigate(getDefaultAuthorizedRoute(currentUser.role), { replace: true });
     }
   }, [navigate]);
 
@@ -72,7 +73,7 @@ export function Login() {
         });
 
         await syncRuntimeFromServer();
-        navigate("/", { replace: true });
+        navigate(getDefaultAuthorizedRoute(user.role), { replace: true });
       } catch (requestError) {
         const apiError = requestError as ApiError;
         setError(apiError.message || "Unable to login. Please check your credentials.");

@@ -9,6 +9,7 @@ import type {
   Vehicle,
 } from "./fleetData";
 import { apiClient, type ApiError } from "./apiClient";
+import { isStaffRole } from "./accessControl";
 
 const KEYS = {
   vehicles: "mvsm_runtime_vehicles",
@@ -276,6 +277,12 @@ export function getCurrentUser() {
 }
 
 export async function fetchUsersFromServer() {
+  const session = getCurrentSession();
+  if (isStaffRole(session?.role)) {
+    writeRows(KEYS.users, []);
+    return [];
+  }
+
   try {
     const rows = await apiClient.users.list();
     const mapped = rows.map(mapApiUserToAccount);
@@ -283,16 +290,7 @@ export async function fetchUsersFromServer() {
     return mapped;
   } catch (error) {
     const apiError = error as ApiError;
-    if (apiError.status === 403 || apiError.status === 401) {
-      try {
-        const me = await apiClient.users.me();
-        const mapped = [mapApiUserToAccount(me)];
-        writeRows(KEYS.users, mapped);
-        return mapped;
-      } catch {
-        return getRuntimeUsers();
-      }
-    }
+    if (apiError.status === 403 || apiError.status === 401) return [];
     throw error;
   }
 }
@@ -311,6 +309,16 @@ export async function syncRuntimeFromServer() {
   }
 
   setCurrentSession(session);
+
+  if (isStaffRole(session.role)) {
+    writeRows(KEYS.vehicles, []);
+    writeRows(KEYS.drivers, []);
+    writeRows(KEYS.missions, []);
+    writeRows(KEYS.maintenance, []);
+    writeRows(KEYS.audit, []);
+    writeRows(KEYS.users, []);
+    return true;
+  }
 
   const results = await Promise.allSettled([
     apiClient.vehicles.list(),

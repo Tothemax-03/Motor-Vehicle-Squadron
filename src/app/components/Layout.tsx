@@ -26,6 +26,7 @@ import {
 import { BrandIdentity } from "./shared/BrandIdentity";
 import type { DriverProfile, MaintenanceRecord, Mission, UserAccount, Vehicle } from "../data/fleetData";
 import { apiClient } from "../data/apiClient";
+import { getDefaultAuthorizedRoute, getVisibleNavigation, isAdminRole, isStaffRole } from "../data/accessControl";
 import {
   clearCurrentSession,
   getCurrentUser,
@@ -70,6 +71,9 @@ const operationsNav: NavItem[] = [
 const adminNav: NavItem[] = [
   { path: "/users", icon: Users, label: "User Management" },
   { path: "/activity-logs", icon: History, label: "Activity Logs / Audit" },
+];
+
+const settingsNav: NavItem[] = [
   { path: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -83,6 +87,7 @@ const pageMeta: Record<string, { title: string; subtitle: string }> = {
   "/users": { title: "User Management", subtitle: "Access control, user roles, and account lifecycle" },
   "/settings": { title: "System Settings", subtitle: "Platform configuration, security controls, and preferences" },
   "/activity-logs": { title: "Activity Logs / Audit Trail", subtitle: "System event traceability and compliance records" },
+  "/logs": { title: "Activity Logs / Audit Trail", subtitle: "System event traceability and compliance records" },
 };
 
 const workOrderStatusLabel: Record<MaintenanceRecord["status"], string> = {
@@ -178,6 +183,10 @@ function buildSearchResults(query: string) {
 }
 
 function buildNotifications(currentUser: UserAccount | null) {
+  if (!currentUser || !isAdminRole(currentUser.role)) {
+    return [];
+  }
+
   const notices: NotificationItem[] = [];
   const users = getRuntimeUsers();
   const vehicles = getRuntimeVehicles();
@@ -186,17 +195,15 @@ function buildNotifications(currentUser: UserAccount | null) {
   const drivers = getRuntimeDrivers();
   const auditTrail = getRuntimeAuditTrail();
 
-  if (currentUser?.role === "Admin") {
-    users.filter((user) => user.status === "Pending").slice(0, 3).forEach((user) => {
-      notices.push({
-        id: `pending-user-${user.id}`,
-        title: "New user request pending approval",
-        description: `${user.fullName} (${user.email}) is awaiting approval.`,
-        timestamp: user.createdAt,
-        route: "/users",
-      });
+  users.filter((user) => user.status === "Pending").slice(0, 3).forEach((user) => {
+    notices.push({
+      id: `pending-user-${user.id}`,
+      title: "New user request pending approval",
+      description: `${user.fullName} (${user.email}) is awaiting approval.`,
+      timestamp: user.createdAt,
+      route: "/users",
     });
-  }
+  });
 
   const dueThreshold = new Date();
   dueThreshold.setDate(dueThreshold.getDate() + 7);
@@ -329,6 +336,13 @@ export function Layout() {
   }, [location.pathname, navigate]);
 
   useEffect(() => {
+    if (!currentUser) return;
+    if (!isStaffRole(currentUser.role)) return;
+    if (location.pathname === "/settings") return;
+    navigate(getDefaultAuthorizedRoute(currentUser.role), { replace: true });
+  }, [currentUser, location.pathname, navigate]);
+
+  useEffect(() => {
     const intervalId = window.setInterval(() => setRefreshTick((previous) => previous + 1), 10000);
     return () => window.clearInterval(intervalId);
   }, []);
@@ -343,6 +357,9 @@ export function Layout() {
   const unreadCount = notificationsWithRead.filter((item) => !item.read).length;
   const meta = pageMeta[location.pathname] ?? pageMeta["/"];
   const roleBadgeClass = currentUser?.role === "Admin" ? "border-indigo-200 bg-indigo-50 text-indigo-700" : "border-emerald-200 bg-emerald-50 text-emerald-700";
+  const visibleNavigation = getVisibleNavigation(currentUser?.role);
+  const profileRoute = currentUser?.role === "Admin" ? "/users" : "/settings";
+  const profileLabel = currentUser?.role === "Admin" ? "User Management" : "Settings";
 
   const handleSignOut = () => {
     (async () => {
@@ -367,7 +384,10 @@ export function Layout() {
 
   if (!currentUser) return <div className="h-screen bg-slate-100" />;
 
-  const renderNavSection = (title: string, items: NavItem[]) => (
+  const renderNavSection = (title: string, items: NavItem[]) => {
+    if (items.length === 0) return null;
+
+    return (
     <div className="space-y-1">
       {!collapsed ? (
         <p className="px-3 pb-1 text-[10px] uppercase tracking-[0.14em] text-slate-300/55">{title}</p>
@@ -395,9 +415,10 @@ export function Layout() {
             </>
           )}
         </NavLink>
-      ))}
-    </div>
-  );
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-100">
@@ -415,7 +436,19 @@ export function Layout() {
           />
           {!collapsed ? <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2 text-xs text-slate-200/85"><BadgeCheck className="h-3.5 w-3.5 text-emerald-300" />Enterprise Operations Console</div> : null}
         </div>
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">{renderNavSection("Operations", operationsNav)}{renderNavSection("Administration", adminNav)}</nav>
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+          {visibleNavigation.showOperations ? renderNavSection("Operations", operationsNav) : null}
+          {renderNavSection(
+            visibleNavigation.showUsers || visibleNavigation.showActivityLogs || visibleNavigation.showSettings
+              ? "Administration"
+              : "Workspace",
+            [
+              ...(visibleNavigation.showUsers ? adminNav.filter((item) => item.path === "/users") : []),
+              ...(visibleNavigation.showActivityLogs ? adminNav.filter((item) => item.path === "/activity-logs") : []),
+              ...(visibleNavigation.showSettings ? settingsNav : []),
+            ]
+          )}
+        </nav>
         <div className="border-t border-white/10 px-3 py-3"><button onClick={handleSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-200/75 transition-colors hover:bg-white/8 hover:text-white" title={collapsed ? "Sign Out" : undefined}><LogOut className="h-4 w-4 shrink-0" />{!collapsed ? <span>Sign Out</span> : null}</button></div>
         <button onClick={() => setCollapsed((previous) => !previous)} className="absolute -right-3 top-20 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-700 shadow-md transition-colors hover:bg-slate-100 lg:flex" type="button">{collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}</button>
       </aside>
@@ -425,27 +458,27 @@ export function Layout() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <button onClick={() => setMobileOpen((previous) => !previous)} className="rounded-lg border border-slate-200 p-1.5 text-slate-600 hover:bg-slate-100 lg:hidden" type="button">{mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</button>
-              <div ref={searchRef} className="relative hidden md:block">
+              {visibleNavigation.showSearch ? <div ref={searchRef} className="relative hidden md:block">
                 <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 md:min-w-[340px]">
                   <Search className="h-4 w-4 text-slate-400" />
                   <input value={searchValue} onFocus={() => setSearchOpen(true)} onChange={(event) => { setSearchValue(event.target.value); setSearchOpen(true); }} onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); if (event.key === "Enter" && searchResults.length) { event.preventDefault(); selectSearchResult(searchResults[0]); } }} placeholder="Search plate number, mission order, driver, or work order" className="w-full bg-transparent text-xs text-slate-700 placeholder:text-slate-400 outline-none" />
                   <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] text-slate-400"><Command className="h-3 w-3" />K</span>
                 </div>
                 {searchOpen && searchValue.trim() ? <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"><div className="max-h-80 overflow-y-auto py-1.5">{searchResults.length === 0 ? <div className="px-3 py-5 text-center text-sm text-slate-500">No matching records found</div> : searchResults.map((result) => <button key={result.id} type="button" onClick={() => selectSearchResult(result)} className="flex w-full items-start justify-between gap-3 px-3 py-2.5 text-left hover:bg-slate-50"><div className="min-w-0"><p className="truncate text-sm font-medium text-slate-800">{result.title}</p><p className="truncate text-xs text-slate-500">{result.subtitle}</p></div><span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500">{result.module}</span></button>)}</div></div> : null}
-              </div>
+              </div> : null}
               <div className="min-w-0"><h1 className="truncate text-base font-semibold tracking-tight text-slate-900 lg:text-lg">{meta.title}</h1><p className="truncate text-xs text-slate-500">{meta.subtitle}</p></div>
             </div>
 
             <div className="flex items-center gap-2.5">
               <div className="hidden items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs text-emerald-700 sm:flex"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />System Online</div>
               <div className="hidden items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600 lg:flex"><Activity className="h-3.5 w-3.5" />Last sync {getCurrentTime()}</div>
-              <div ref={notificationRef} className="relative">
+              {visibleNavigation.showNotifications ? <div ref={notificationRef} className="relative">
                 <button className="relative rounded-lg border border-slate-200 p-2 text-slate-500 transition-colors hover:bg-slate-100" type="button" onClick={() => setNotificationsOpen((previous) => !previous)}><Bell className="h-4 w-4" />{unreadCount > 0 ? <span className="absolute -right-0.5 -top-0.5 h-4 min-w-4 rounded-full bg-red-500 px-1 text-[10px] leading-4 text-white">{unreadCount > 9 ? "9+" : unreadCount}</span> : null}</button>
                 {notificationsOpen ? <div className="absolute right-0 top-full z-50 mt-2 w-[360px] rounded-xl border border-slate-200 bg-white shadow-lg"><div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><div><p className="text-sm font-medium text-slate-800">System Notifications</p><p className="text-xs text-slate-500">{unreadCount} unread alert(s)</p></div><button type="button" onClick={markAllRead} disabled={unreadCount === 0} className="text-xs text-slate-600 hover:text-slate-800 disabled:cursor-not-allowed disabled:text-slate-300">Mark all as read</button></div><div className="max-h-[340px] overflow-y-auto">{notificationsWithRead.length === 0 ? <div className="px-4 py-6 text-center text-sm text-slate-500">No notifications available.</div> : notificationsWithRead.map((notification) => <article key={notification.id} className={`border-b border-slate-100 px-4 py-3 ${notification.read ? "bg-white" : "bg-blue-50/35"}`}><div className="flex items-start justify-between gap-2"><button type="button" onClick={() => { markRead(notification.id); setNotificationsOpen(false); navigate(notification.route); }} className="min-w-0 flex-1 text-left"><p className="text-sm font-medium text-slate-800">{notification.title}</p><p className="mt-0.5 text-xs text-slate-600">{notification.description}</p><p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(notification.timestamp)}</p></button>{!notification.read ? <button type="button" onClick={() => markRead(notification.id)} className="shrink-0 text-[11px] text-slate-600 hover:text-slate-800">Mark as read</button> : <span className="shrink-0 text-[11px] text-slate-400">Read</span>}</div></article>)}</div><div className="border-t border-slate-100 px-4 py-2"><button type="button" onClick={() => { setNotificationsOpen(false); navigate("/activity-logs"); }} className="text-xs text-slate-600 hover:text-slate-800">View full activity logs</button></div></div> : null}
-              </div>
+              </div> : null}
               <div ref={userMenuRef} className="relative">
                 <button onClick={() => setUserMenuOpen((previous) => !previous)} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left transition-colors hover:bg-slate-50" type="button"><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0b1728]"><User className="h-4 w-4 text-white" /></div><div className="hidden sm:block"><p className="text-sm text-slate-800">{currentUser.fullName}</p><div className="mt-0.5 flex items-center gap-1.5"><span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${roleBadgeClass}`}>{currentUser.role}</span></div></div><ChevronDown className="hidden h-4 w-4 text-slate-400 sm:block" /></button>
-                {userMenuOpen ? <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"><div className="border-b border-slate-100 px-4 py-3"><p className="text-sm font-medium text-slate-800">{currentUser.fullName}</p><p className="mt-0.5 text-xs text-slate-500">{currentUser.email}</p><span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${roleBadgeClass}`}>Role: {currentUser.role}</span></div><button className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" type="button" onClick={() => { setUserMenuOpen(false); navigate("/users"); }}>User Profile</button><button className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" type="button" onClick={() => { setUserMenuOpen(false); navigate("/settings"); }}>Preferences</button><hr className="my-1 border-slate-100" /><button onClick={handleSignOut} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50" type="button">Sign Out</button></div> : null}
+                {userMenuOpen ? <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1 shadow-lg"><div className="border-b border-slate-100 px-4 py-3"><p className="text-sm font-medium text-slate-800">{currentUser.fullName}</p><p className="mt-0.5 text-xs text-slate-500">{currentUser.email}</p><span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${roleBadgeClass}`}>Role: {currentUser.role}</span></div><button className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" type="button" onClick={() => { setUserMenuOpen(false); navigate(profileRoute); }}>{profileLabel}</button><button className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50" type="button" onClick={() => { setUserMenuOpen(false); navigate("/settings"); }}>Preferences</button><hr className="my-1 border-slate-100" /><button onClick={handleSignOut} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50" type="button">Sign Out</button></div> : null}
               </div>
             </div>
           </div>

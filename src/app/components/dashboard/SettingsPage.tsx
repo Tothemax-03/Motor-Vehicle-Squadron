@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, Shield, Bell, Database, Globe, Lock, Clock3 } from "lucide-react";
 import { PageHeader } from "../shared/PageHeader";
 import { Panel } from "../shared/Panel";
+import { apiClient, type ApiError } from "../../data/apiClient";
 
 interface SettingsForm {
   timezone: string;
@@ -14,19 +15,56 @@ interface SettingsForm {
   escalationReminders: boolean;
 }
 
+const DEFAULT_FORM: SettingsForm = {
+  timezone: "Asia/Manila",
+  backupTime: "02:00",
+  passwordRotationDays: "90",
+  sessionTimeout: "30",
+  emailFrom: "mvsm-notify@afp.mil.ph",
+  mfaRequired: true,
+  anomalyAlerts: true,
+  escalationReminders: true,
+};
+
 export function SettingsPage() {
-  const [form, setForm] = useState<SettingsForm>({
-    timezone: "Asia/Manila",
-    backupTime: "02:00",
-    passwordRotationDays: "90",
-    sessionTimeout: "30",
-    emailFrom: "mvsm-notify@afp.mil.ph",
-    mfaRequired: true,
-    anomalyAlerts: true,
-    escalationReminders: true,
-  });
+  const [form, setForm] = useState<SettingsForm>(DEFAULT_FORM);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const settings = await apiClient.settings.get();
+        if (!mounted) return;
+        setForm({
+          timezone: settings.timezone || DEFAULT_FORM.timezone,
+          backupTime: settings.backupTime || DEFAULT_FORM.backupTime,
+          passwordRotationDays: String(settings.passwordRotationDays || DEFAULT_FORM.passwordRotationDays),
+          sessionTimeout: String(settings.sessionTimeout || DEFAULT_FORM.sessionTimeout),
+          emailFrom: settings.emailFrom || DEFAULT_FORM.emailFrom,
+          mfaRequired: Boolean(settings.mfaRequired),
+          anomalyAlerts: Boolean(settings.anomalyAlerts),
+          escalationReminders: Boolean(settings.escalationReminders),
+        });
+      } catch (requestError) {
+        if (!mounted) return;
+        const apiError = requestError as ApiError;
+        setError(apiError.message || "Unable to load system settings.");
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const update = <K extends keyof SettingsForm>(field: K, value: SettingsForm[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -34,7 +72,7 @@ export function SettingsPage() {
     setError("");
   };
 
-  const saveSettings = () => {
+  const saveSettings = async () => {
     setError("");
     setSaved(false);
 
@@ -62,7 +100,26 @@ export function SettingsPage() {
       return;
     }
 
-    setSaved(true);
+    setSaving(true);
+    try {
+      const response = await apiClient.settings.update(form);
+      setForm({
+        timezone: response.settings.timezone,
+        backupTime: response.settings.backupTime,
+        passwordRotationDays: String(response.settings.passwordRotationDays),
+        sessionTimeout: String(response.settings.sessionTimeout),
+        emailFrom: response.settings.emailFrom,
+        mfaRequired: Boolean(response.settings.mfaRequired),
+        anomalyAlerts: Boolean(response.settings.anomalyAlerts),
+        escalationReminders: Boolean(response.settings.escalationReminders),
+      });
+      setSaved(true);
+    } catch (requestError) {
+      const apiError = requestError as ApiError;
+      setError(apiError.message || "Unable to save settings.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -73,14 +130,21 @@ export function SettingsPage() {
         rightSlot={
           <button
             type="button"
-            onClick={saveSettings}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#0d1b2a] px-3.5 py-2 text-sm text-white hover:bg-[#16283d] transition-colors"
+            onClick={() => { void saveSettings(); }}
+            disabled={loading || saving}
+            className="inline-flex items-center gap-2 rounded-xl bg-[#0d1b2a] px-3.5 py-2 text-sm text-white transition-colors hover:bg-[#16283d] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
-            Save Configuration
+            {saving ? "Saving..." : "Save Configuration"}
           </button>
         }
       />
+
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Loading current configuration...
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
